@@ -1,0 +1,192 @@
+<script src="https://sdk.minepi.com/pi-sdk.js"></script>
+
+<script>
+
+const statusDiv = document.getElementById('status');
+const loginBtn = document.getElementById('loginBtn');
+
+
+function showStatus(msg, success=true){
+
+    statusDiv.style.display="block";
+    statusDiv.innerHTML=msg;
+
+    statusDiv.style.background =
+    success ?
+    "rgba(46,213,115,0.2)" :
+    "rgba(255,71,87,0.2)";
+}
+
+
+
+async function loginWithPi(){
+
+loginBtn.disabled=true;
+loginBtn.textContent="⏳ جاري الاتصال...";
+
+
+try{
+
+
+showStatus("جاري تهيئة Pi SDK...");
+
+
+await Pi.init({
+
+version:"2.0",
+
+sandbox:true
+
+});
+
+
+
+showStatus("جاري تسجيل الدخول عبر Pi...");
+
+
+
+const authResult = await Pi.authenticate(
+
+["username"],
+
+
+function(payment){
+
+console.log(
+"Payment incomplete:",
+payment
+);
+
+}
+
+);
+
+
+
+const accessToken =
+authResult.accessToken;
+
+
+
+if(!accessToken){
+
+throw new Error(
+"لم يتم استلام Access Token"
+);
+
+}
+
+
+
+
+// إرسال التوكن إلى السيرفر للتحقق
+
+const response = await fetch(
+"/api/auth/pi",
+{
+
+method:"POST",
+
+headers:{
+
+"Content-Type":"application/json"
+
+},
+
+body:JSON.stringify({
+
+accessToken:accessToken
+
+})
+
+}
+
+);
+
+
+
+const data = await response.json();
+
+
+
+if(!response.ok){
+
+throw new Error(
+data.error ||
+"فشل التحقق من المستخدم"
+);
+
+}
+
+
+
+
+showStatus(
+
+`✅ مرحباً ${data.user.username}`
+
+);
+
+
+
+loginBtn.textContent="✅ تم الدخول";
+
+
+
+console.log(
+"Pi User:",
+data.user
+);
+
+
+
+}
+
+catch(error){
+
+
+console.error(error);
+
+
+showStatus(
+
+"❌ "+error.message,
+
+false
+
+);
+
+
+loginBtn.textContent=
+"🚀 تسجيل الدخول عبر Pi";
+
+
+}
+
+
+finally{
+
+loginBtn.disabled=false;
+
+}
+
+
+}
+
+
+
+
+// تسجيل تلقائي عند فتح التطبيق
+
+window.addEventListener(
+"load",
+()=>{
+
+loginWithPi();
+
+}
+
+);
+
+
+</script>
